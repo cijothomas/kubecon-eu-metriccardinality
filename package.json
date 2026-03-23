@@ -1,0 +1,27 @@
+{
+  "name": "kubecon-eu-metriccardinality",
+  "version": "1.0.0",
+  "description": "Lightning talk for [KubeCon EU Co-located Events 2026](https://colocatedeventseu2026.sched.com/) — Observability Day.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "slidev",
+    "build": "slidev build --base /kubecon-eu-metriccardinality/",
+    "export": "slidev export"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cijothomas/kubecon-eu-metriccardinality.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/cijothomas/kubecon-eu-metriccardinality/issues"
+  },
+  "homepage": "https://github.com/cijothomas/kubecon-eu-metriccardinality#readme",
+  "dependencies": {
+    "@slidev/cli": "^52.14.1",
+    "@slidev/theme-default": "^0.25.0"
+  }
+}

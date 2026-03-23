@@ -441,7 +441,7 @@ Temporality matters a lot for cardinality capping. With cumulative temporality, 
 
 <v-click>
 
-2. But it introduces a **silent correctness problem** — metrics can lie
+2. But it introduces a **subtle observability gap**
 
 </v-click>
 

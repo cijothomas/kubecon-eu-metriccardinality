@@ -468,8 +468,11 @@ To wrap up: cardinality capping is a necessary safety net — it prevents OOM. B
 -->
 
 ---
+layout: cover
 class: text-center
 ---
+
+<img src="/title-banner.png" style="width: 400px; margin: 0 auto 1rem;" />
 
 # Thank You & Feedback
 

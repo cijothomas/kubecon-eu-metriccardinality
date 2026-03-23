@@ -30,15 +30,15 @@ style: "background-size: cover; background-position: center;"
 
 ---
 
-# Have You Ever Trusted a Dashboard That Was Wrong?
+# Have Your Metrics Ever Lied to You?
 
 <br>
 
-Your error rate dashboard says **zero 500 errors**. Alerts are silent.
+You query for error count — it says **zero**. Error rate looks fine.
 
 <br>
 
-But users are reporting failures.
+But users are reporting failures. Logs show 500s.
 
 <br>
 
@@ -47,7 +47,7 @@ You use OTel to report metrics. It always worked.
 **So where did the errors go?**
 
 <!--
-Let me start with a question. Have you ever trusted a dashboard that turned out to be wrong? Your error rate says zero. Alerts are silent. But users are telling you something is broken. You check the metrics — nothing. Your app uses OTel. Metrics always worked. So where did the errors go? This talk is about a feature in OpenTelemetry that can make this happen — silently, without any warning. Let me show you how.
+Let me start with a question. Have you ever queried your metrics for error count and it said zero? Error rate looks fine. But users are telling you something is broken. You check the logs — 500s everywhere. Your app uses OTel. Metrics always worked. So where did the errors go? This talk is about a feature in OpenTelemetry that can make this happen — silently, without any warning. Let me show you how.
 -->
 
 ---
@@ -58,20 +58,20 @@ A simple web app counter:
 
 ```
 counter: http.server.requests
-attributes: url.path, http.method, http.status_code
+attributes: url.path, http.method, success
 ```
 
-Each unique combination of attribute values = **one time series**
+Each unique combination of attribute values = **one metric data point**
 
-| url.path | http.method | http.status_code | → series |
-|----------|-------------|------------------|----------|
-| /home | GET | 200 | Series #1 |
-| /checkout | POST | 200 | Series #2 |
-| /api/users | POST | 201 | Series #3 |
+| url.path | http.method | success | → data point |
+|----------|-------------|---------|---------------|
+| /home | GET | true | Data point #1 |
+| /checkout | POST | true | Data point #2 |
+| /api/users | POST | true | Data point #3 |
 | ... | ... | ... | ... |
 
 <!--
-Let me set up the example we'll use throughout this talk. A simple counter tracking HTTP requests with three attributes: URL path, method, and status code. Each unique combination becomes a separate time series.
+Let me set up the example we'll use throughout this talk. A simple counter tracking HTTP requests with three attributes: URL path, method, and whether it succeeded. Each unique combination becomes a separate metric data point.
 -->
 
 ---
@@ -82,14 +82,14 @@ Let me set up the example we'll use throughout this talk. A simple counter track
 
 <br>
 
-100 URL paths × 3 methods × 5 status codes = **1,500 series** ✅
+100 URL paths × 3 methods × 2 success values = **600 data points** ✅
 
 <br>
 
 That's manageable. But what if some attribute has **high cardinality**?
 
 <!--
-Cardinality is just the number of unique combinations. With 100 paths, 3 methods, and 5 status codes, that's 1,500 series. Totally manageable. But what happens when one of those attributes has unbounded values?
+Cardinality is just the number of unique combinations. With 100 paths, 3 methods, and 2 success values, that's 600 data points. Totally manageable. But what happens when one of those attributes has unbounded values?
 -->
 
 ---
@@ -109,7 +109,7 @@ What if `url.path` includes user-specific IDs?
 
 <br>
 
-Hundreds of thousands of paths × 3 methods × 5 status codes = **unbounded series** 💥
+Hundreds of thousands of paths × 3 methods × 2 success values = **unbounded data points** 💥
 
 <v-click>
 
@@ -129,7 +129,7 @@ But what happens when url.path isn't just a handful of known routes? If it inclu
 
 # Even "Safe" Attributes Can Explode
 
-Your attributes look low-cardinality: known paths, standard methods, finite status codes.
+Your attributes look low-cardinality: known paths, standard methods, boolean success.
 
 <br>
 
@@ -146,7 +146,7 @@ curl -X AAAA https://your-app.com/
 
 Server returns 405 — but the metric still records it:
 
-`{url=/, method=FOO, status=405}` → new series!
+`{url=/, method=FOO, success=false}` → new data point!
 
 **Depending on your app, even seemingly safe attributes can trigger an explosion.**
 
@@ -166,7 +166,7 @@ And it's not just obviously high-cardinality attributes. Even attributes that lo
 counter = meter.create_counter("http.server.requests")
 
 for i in 1 to 1_000_000_000:
-    counter.add(1, { request_id: new_guid(), method: "GET", status: 200 })
+    counter.add(1, { request_id: new_guid(), method: "GET", success: true })
 ```
 
 <br>
@@ -175,7 +175,7 @@ for i in 1 to 1_000_000_000:
 
 ### Every iteration creates a new unique attribute combination 💥
 
-- 1 billion iterations = **1 billion series in memory**
+- 1 billion iterations = **1 billion data points in memory**
 - SDK memory grows without bound
 - Eventually: **OOM kill** — your app is dead
 
@@ -211,22 +211,18 @@ To protect applications from this, OpenTelemetry SDKs added cardinality capping 
 
 # How It Works — Cardinality Limit = 3
 
-SDK caps unique attribute sets at **N per metric per collection cycle** (default: 2,000)
-
-For this example: **limit = 3**
-
-<br>
+SDK caps unique attribute sets at **N per metric per collection cycle** (default: 2,000). For this example: **limit = 3**
 
 <v-click>
 
-| # | Request | Count | Attributes | Tracked? |
-|---|---------|-------|------------|----------|
-| 1 | GET /home → 200 | ×100 | `{url=/home, method=GET, status=200}` | ✅ 1st combo |
-| 2 | POST /api/users → 201 | ×50 | `{url=/api/users, method=POST, status=201}` | ✅ 2nd combo |
-| 3 | POST /checkout → 200 | ×80 | `{url=/checkout, method=POST, status=200}` | ✅ 3rd — **limit!** |
-| 4 | POST /api/orders → 500 | ×15 | `{url=/api/orders, method=POST, status=500}` | ❌ **Overflow** |
-| 5 | GET /api/status → 200 | ×20 | `{url=/api/status, method=GET, status=200}` | ❌ **Overflow** |
-| 6 | GET /home → 200 | ×30 | `{url=/home, method=GET, status=200}` | ✅ **Already tracked** |
+| # | Request | Count | Tracked? |
+|---|---------|-------|----------|
+| 1 | GET /home → success | ×100 | ✅ 1st combo |
+| 2 | POST /api/users → success | ×50 | ✅ 2nd combo |
+| 3 | POST /checkout → success | ×80 | ✅ 3rd — **limit!** |
+| 4 | POST /api/orders → **failure** | ×15 | ❌ **Overflow** |
+| 5 | GET /api/status → success | ×20 | ❌ **Overflow** |
+| 6 | GET /home → success | ×30 | ✅ **Already tracked** |
 
 </v-click>
 
@@ -238,15 +234,15 @@ Here's how cardinality capping works. The SDK limits the number of unique attrib
 
 # What the SDK Exports
 
-The 6 request types become **4 exported series**:
+Recall: `/home→×130`, `/api/users→×50`, `/checkout→×80`, `/api/orders→×15` ❌, `/api/status→×20` ❌
 
-<br>
+These become **4 exported data points**:
 
 ```
-{url=/home,      method=GET,  status=200}  → 130
-{url=/api/users, method=POST, status=201}  → 50
-{url=/checkout,  method=POST, status=200}  → 80
-{otel.metric.overflow=true}                → 35   ← 15 + 20 folded together
+{url=/home,      method=GET,  success=true}   → 130
+{url=/api/users, method=POST, success=true}   → 50
+{url=/checkout,  method=POST, success=true}   → 80
+{otel.metric.overflow=true}                   → 35   ← 15 + 20 folded together
 ```
 
 <br>
@@ -256,8 +252,8 @@ The 6 request types become **4 exported series**:
 <v-click>
 
 - 1 overflow series — **two completely different requests, now indistinguishable**
-  - 15 POST /api/orders → 500 &nbsp;} both folded into the same bucket
-  - 20 GET /api/status → 200 &nbsp;&nbsp;}
+  - 15 POST /api/orders → failure &nbsp;} both folded into the same bucket
+  - 20 GET /api/status → success &nbsp;}
 - Total: 130 + 50 + 80 + 35 = **295** ✅
 
 </v-click>
@@ -269,6 +265,12 @@ The SDK exports four series — not six. The two overflowed requests get folded 
 ---
 
 # The Main Problem — Metrics That "Lie"
+
+What the backend sees:
+
+```
+/home:GET:true → 130 | /api/users:POST:true → 50 | /checkout:POST:true → 80 | overflow → 35
+```
 
 Queries for endpoints that overflowed return **nothing**:
 
@@ -304,15 +306,18 @@ The obvious victim is the overflowed attribute itself. If you query for requests
 
 When overflow fires, **ALL attributes** on the combination are lost.
 
-Recall exported series: `/home:GET:200→130`, `/api/users:POST:201→50`, `/checkout:POST:200→80`, `overflow→35`
+Recall what the backend sees:
+
+```
+/home:GET:true → 130 | /api/users:POST:true → 50 | /checkout:POST:true → 80 | overflow → 35
+```
 
 <br>
 
-| Query by `http.status_code` | Expected | Actual | Problem |
-|------------------------------|----------|--------|---------|
-| How many **200** responses? | **230** | **210** | 20 from overflow invisible |
-| How many **201** responses? | **50** | **50** | ✅ Happened to be tracked |
-| How many **500** responses? | **15** | **0** | 🚨 Error alert doesn't fire! |
+| Query by `success` | Expected | Actual | Problem |
+|---------------------|----------|--------|---------|
+| How many **successes**? | **280** | **260** | 20 from overflow invisible |
+| How many **failures**? | **15** | **0** | 🚨 Error alert doesn't fire! |
 | **Total** requests? | **295** | **295** | ✅ Always correct |
 
 <v-click>
@@ -324,7 +329,7 @@ Recall exported series: `/home:GET:200→130`, `/api/users:POST:201→50`, `/che
 </v-click>
 
 <!--
-This is the slide I really want you to remember. When overflow fires, ALL attributes on that measurement are lost. So if you query by status code, the 500 errors return zero — because those 15 requests lost their status_code attribute in overflow. Same for the 200 count — 230 expected but only 210 visible, because 20 successful requests are hidden in overflow too. The only query that remains correct is the total — 295 equals 295. Overflow poisons queries on EVERY attribute of that metric, not just the one that caused it.
+This is the slide I really want you to remember. When overflow fires, ALL attributes on that measurement are lost. So if you query by success, failures return zero — because those 15 failed requests lost their success attribute in overflow. Your error alert never fires. Success count is wrong too — 280 expected but only 260 visible, because 20 successful requests are hidden in overflow. The only query that remains correct is the total — 295 equals 295. Overflow poisons queries on EVERY attribute of that metric, not just the one that caused it.
 -->
 
 ---

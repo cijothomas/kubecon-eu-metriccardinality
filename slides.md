@@ -245,6 +245,8 @@ These become **4 exported data points**:
 {otel.metric.overflow=true}                   → 35   ← 15 + 20 folded together
 ```
 
+## The overflow attribute: **`otel.metric.overflow`**
+
 <br>
 
 - 3 normal data points with their original attributes
@@ -254,7 +256,6 @@ These become **4 exported data points**:
 - 1 overflow data point — **two completely different requests, now indistinguishable**
   - 15 POST /api/orders → failure &nbsp;} both folded into the same bucket
   - 20 GET /api/status → success &nbsp;}
-- Total: 130 + 50 + 80 + 35 = **295** ✅
 
 </v-click>
 

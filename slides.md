@@ -10,23 +10,17 @@ drawings:
 transition: slide-left
 mdc: true
 ---
+
+---
 layout: cover
 class: text-center
-background: /title-bg.png
-style: "background-size: cover; background-position: center;"
 ---
 
-<div style="background: rgba(0, 0, 0, 0.6); padding: 2rem 3rem; border-radius: 12px; display: inline-block;">
+<img src="/title-banner.png" style="width: 500px; margin: 0 auto 1rem;" />
 
-# Metrics That Lie
-
-## OTel's Cardinality Capping Trap
-
-<br>
+# "Metrics That Lie" — Understanding OpenTelemetry Cardinality Capping
 
 **Cijo Thomas, Microsoft**
-
-</div>
 
 ---
 

@@ -24,7 +24,7 @@ style: "background-size: cover; background-position: center;"
 
 <br>
 
-**Cijo Thomas**
+**Cijo Thomas, Microsoft**
 
 </div>
 
@@ -466,12 +466,6 @@ Temporality matters a lot for cardinality capping. With cumulative temporality, 
 
 </v-click>
 
-<br>
-
-### Thank you!
-
-**Cijo Thomas** · KubeCon EU 2026 · Observability Day
-
 <!--
 To wrap up: cardinality capping is a necessary safety net — it prevents OOM. But it introduces a silent correctness problem. One bad attribute can poison queries on all attributes of that metric. Use tools that understand overflow, like Aspire. Design your metrics carefully. Choose your temporality wisely. And above all — monitor the overflow attribute, alert on it, and don't ignore it. Thank you!
 -->
@@ -480,7 +474,7 @@ To wrap up: cardinality capping is a necessary safety net — it prevents OOM. B
 class: text-center
 ---
 
-# Feedback
+# Thank You & Feedback
 
 <br>
 
@@ -489,3 +483,5 @@ class: text-center
 <br>
 
 **https://sched.co/2DYA4**
+
+**Cijo Thomas, Microsoft**

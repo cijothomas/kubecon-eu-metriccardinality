@@ -38,7 +38,7 @@ You query for error count — it says **zero**. Error rate looks fine.
 
 <br>
 
-But users are reporting failures. Logs show 500s.
+But users are reporting failures. Logs confirm errors.
 
 <br>
 
@@ -47,7 +47,7 @@ You use OTel to report metrics. It always worked.
 **So where did the errors go?**
 
 <!--
-Let me start with a question. Have you ever queried your metrics for error count and it said zero? Error rate looks fine. But users are telling you something is broken. You check the logs — 500s everywhere. Your app uses OTel. Metrics always worked. So where did the errors go? This talk is about a feature in OpenTelemetry that can make this happen — silently, without any warning. Let me show you how.
+Let me start with a question. Have you ever queried your metrics for error count and it said zero? Error rate looks fine. But users are telling you something is broken. You check the logs — errors everywhere. Your app uses OTel. Metrics always worked. So where did the errors go? This talk is about a feature in OpenTelemetry that can make this happen — silently, without any warning. Let me show you how.
 -->
 
 ---
@@ -122,7 +122,7 @@ Hundreds of thousands of paths × 3 methods × 2 success values = **unbounded da
 </v-click>
 
 <!--
-But what happens when url.path isn't just a handful of known routes? If it includes user-specific IDs — like order IDs or session tokens — suddenly you have hundreds of thousands of unique values. That means a huge number of series, each held as a separate aggregation in memory by the SDK. This is how a single metric can OOM-kill your application.
+But what happens when url.path isn't just a handful of known routes? If it includes user-specific IDs \u2014 like order IDs or session tokens \u2014 suddenly you have hundreds of thousands of unique values. That means a huge number of data points, each held as a separate aggregation in memory by the SDK. This is how a single metric can OOM-kill your application.
 -->
 
 ---
@@ -153,7 +153,7 @@ Server returns 405 — but the metric still records it:
 </v-click>
 
 <!--
-And it's not just obviously high-cardinality attributes. Even attributes that look safe can explode. If an attacker sends requests with arbitrary HTTP methods — FOO, BAR, random strings — your server returns 405, but the metric still records it with whatever method the attacker sent. Each unique method is a new series in memory. Depending on your app setup, even seemingly safe attributes can trigger a cardinality explosion.
+And it's not just obviously high-cardinality attributes. Even attributes that look safe can explode. If an attacker sends requests with arbitrary HTTP methods — FOO, BAR, random strings — your server returns 405, but the metric still records it with whatever method the attacker sent. Each unique method is a new data point in memory. Depending on your app setup, even seemingly safe attributes can trigger a cardinality explosion.
 -->
 
 ---
@@ -182,7 +182,7 @@ for i in 1 to 1_000_000_000:
 </v-click>
 
 <!--
-Let me ask you — what happens if you run this code? It's just a simple loop with a counter. But notice the attribute: id is a new GUID every iteration. That means every single iteration creates a brand new unique attribute combination that the SDK has to hold in memory. A billion iterations means a billion series. Your app will be OOM-killed long before it finishes. This is obviously an extreme example, but it shows how easy it is to kill your application with a single bad attribute. In reality, less obvious things like user IDs or full URL paths with query strings do the same thing, just more slowly.
+Let me ask you — what happens if you run this code? It's just a simple loop with a counter. But notice the attribute: id is a new GUID every iteration. That means every single iteration creates a brand new unique attribute combination that the SDK has to hold in memory. A billion iterations means a billion data points. Your app will be OOM-killed long before it finishes. This is obviously an extreme example, but it shows how easy it is to kill your application with a single bad attribute. In reality, less obvious things like user IDs or full URL paths with query strings do the same thing, just more slowly.
 -->
 
 ---
@@ -227,7 +227,7 @@ SDK caps unique attribute sets at **N per metric per collection cycle** (default
 </v-click>
 
 <!--
-Here's how cardinality capping works. The SDK limits the number of unique attribute combinations per metric per collection cycle. The default is 2,000, but I'm using 3 to keep it simple. We have five types of requests. The first three each get their own series. But the fourth and fifth are new combinations — they overflow. One is a POST returning 500, the other is a GET returning 200. Two very different requests, but they both end up in the same overflow bucket.
+Here's how cardinality capping works. The SDK limits the number of unique attribute combinations per metric per collection cycle. The default is 2,000, but I'm using 3 to keep it simple. We have five types of requests. The first three each get their own data point. But the fourth and fifth are new combinations — they overflow. One is a failed POST, the other is a successful GET. Two very different requests, but they both end up in the same overflow bucket.
 -->
 
 ---
@@ -247,11 +247,11 @@ These become **4 exported data points**:
 
 <br>
 
-- 3 normal series with their original attributes
+- 3 normal data points with their original attributes
 
 <v-click>
 
-- 1 overflow series — **two completely different requests, now indistinguishable**
+- 1 overflow data point — **two completely different requests, now indistinguishable**
   - 15 POST /api/orders → failure &nbsp;} both folded into the same bucket
   - 20 GET /api/status → success &nbsp;}
 - Total: 130 + 50 + 80 + 35 = **295** ✅
@@ -259,7 +259,7 @@ These become **4 exported data points**:
 </v-click>
 
 <!--
-The SDK exports four series — not six. The two overflowed requests get folded into the same overflow bucket. 15 plus 20 equals 35. A POST returning 500 and a GET returning 200 are now a single number: 35. You can't tell them apart. Meanwhile, GET /home correctly aggregates to 130 because it was already tracked. The sixth request just adds to an existing series — no new slot needed. Everything that overflows is merged into one indistinguishable bucket. This is what makes the next part so dangerous.
+The SDK exports four data points — not six. The two overflowed requests get folded into the same overflow bucket. 15 plus 20 equals 35. A failed POST and a successful GET are now a single number: 35. You can't tell them apart. Meanwhile, GET /home correctly aggregates to 130 because it was already tracked. The sixth request just adds to an existing data point — no new slot needed. Everything that overflows is merged into one indistinguishable bucket. This is what makes the next part so dangerous.
 -->
 
 ---
@@ -282,7 +282,7 @@ Queries for endpoints that overflowed return **nothing**:
 
 <br>
 
-Your error dashboard for that endpoint shows **nothing**.
+Your query for that endpoint returns **nothing**.
 
 <v-click>
 

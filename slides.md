@@ -407,32 +407,31 @@ Here's one example. The Aspire dashboard detects the overflow attribute and show
 
 ---
 
-# Solutions & Mitigation
+# Temporality & Cardinality Capping
 
-### If possible, avoid high-cardinality dimensions
-
-<v-click>
-
-### Temporality matters
+<br>
 
 | | Cumulative | Delta |
 |-|-----------|-------|
-| Series lifetime | Forever (since SDK start) | Reset each collection cycle |
+| Data point lifetime | Forever (since SDK start) | Reset each collection cycle |
 | Cardinality pressure | Accumulates over time | Only active combos count |
 | Reclaiming slots | ❌ Never | ✅ Stale combos freed |
+| Overflow risk | Higher — grows forever | Lower — resets each cycle |
 
-</v-click>
+<br>
 
 <v-click>
 
-### ⚠️ Important distinction
+### ⚠️ Important
 
-OTel SDK cardinality capping is at the **SDK level**. It limits what one process holds in memory. The backend may see far more series from multiple instances, resource attributes, etc.
+OTel SDK cardinality capping is at the **SDK level** — not the backend.
+
+The backend may see far more data points from multiple instances, resource attributes, etc.
 
 </v-click>
 
 <!--
-So what can you do about it? First, the obvious: avoid high-cardinality attributes. Use Views to drop or reduce dimensions before aggregation. Second, temporality matters a lot. With cumulative temporality, once a series is created it lives forever in the SDK — cardinality only grows. With delta, the SDK resets each cycle and can reclaim slots for inactive combinations. This dramatically reduces overflow pressure. And one critical point to be very clear about: this capping happens at the SDK level. It limits what one process holds in memory. Your backend can still see far more series from multiple instances and resource attributes.
+Temporality matters a lot for cardinality capping. With cumulative temporality, once a data point is created it lives forever in the SDK — cardinality only grows. With delta, the SDK resets each cycle and can reclaim slots for inactive combinations. This dramatically reduces overflow pressure. And one critical point: this capping happens at the SDK level. It limits what one process holds in memory. Your backend can still see far more data points from multiple instances and resource attributes.
 -->
 
 ---

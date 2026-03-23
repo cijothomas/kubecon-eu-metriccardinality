@@ -1,5 +1,5 @@
 ---
-theme: default
+theme: seriph
 title: "Metrics That Lie: OTel's Cardinality Capping Trap"
 info: |
   KubeCon EU 2026 — Observability Day Lightning Talk

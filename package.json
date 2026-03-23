@@ -22,6 +22,7 @@
   "homepage": "https://github.com/cijothomas/kubecon-eu-metriccardinality#readme",
   "dependencies": {
     "@slidev/cli": "^52.14.1",
-    "@slidev/theme-default": "^0.25.0"
+    "@slidev/theme-default": "^0.25.0",
+    "@slidev/theme-seriph": "^0.25.0"
   }
 }

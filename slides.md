@@ -160,7 +160,7 @@ And it's not just obviously high-cardinality attributes. Even attributes that lo
 
 # What Happens If You Run This?
 
-<br>
+<div style="font-size: 1.5em;">
 
 ```
 counter = meter.create_counter("http.server.requests")
@@ -168,6 +168,8 @@ counter = meter.create_counter("http.server.requests")
 for i in 1 to 1_000_000_000:
     counter.add(1, { request_id: new_guid(), method: "GET", success: true })
 ```
+
+</div>
 
 <br>
 

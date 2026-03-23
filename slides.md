@@ -441,7 +441,7 @@ Temporality matters a lot for cardinality capping. With cumulative temporality, 
 
 <v-click>
 
-2. But it introduces a **subtle observability gap**
+2. But it introduces a **subtle observability blindspot**
 
 </v-click>
 
@@ -453,7 +453,7 @@ Temporality matters a lot for cardinality capping. With cumulative temporality, 
 
 <v-click>
 
-4. **Check your tooling** — the overflow attribute is standardized; does your backend/vendor detect it?
+4. **See if your tooling can be made aware of this** — the overflow attribute is standardized
 
 </v-click>
 
